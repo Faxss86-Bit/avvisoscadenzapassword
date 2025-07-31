@@ -76,11 +76,11 @@ foreach ($utente in $utenti) {
     # Invia email solo agli utenti con password in scadenza entro i giorni configurati
     if ($giorniAllaScadenza -le $GiorniAvviso -and $giorniAllaScadenza -ge 0 -and !$utente.PasswordNeverExpires -and $utente.PasswordLastSet -ne $null) {
         if ($utente.EmailAddress) {
-            $oggettoUtente = "La tua password scadrà tra $giorniAllaScadenza giorni"
+            $oggettoUtente = "La tua password scadra tra $giorniAllaScadenza giorni"
             $corpoUtente = @"
 Ciao $($utente.DisplayName),
 
-La tua password scadrà il $($dataScadenza.ToString("dd/MM/yyyy")), cioè tra $giorniAllaScadenza giorni.
+La tua password scadra il $($dataScadenza.ToString("dd/MM/yyyy")), cioè tra $giorniAllaScadenza giorni.
 
 Ti consigliamo di cambiarla il prima possibile per evitare interruzioni di accesso.
 

@@ -11,8 +11,14 @@ $EmailMittente = "noreply@tuodominio.it"
 # OPZIONE 1: Un solo destinatario
 # $EmailAmministratore = "admin@tuodominio.it"
 
-# OPZIONE 2: Più destinatari separati da virgola (stringa)
+# OPZIONE 2: Più destinatari separati da virgola (STESSO DOMINIO)
 $EmailAmministratore = "admin1@tuodominio.it,admin2@tuodominio.it,manager@tuodominio.it"
+
+# OPZIONE 2B: Destinatari di DOMINI DIVERSI (per Office 365)
+# $EmailAmministratore = @(
+#     "admin@dominio1.it,manager@dominio1.it",  # Primo gruppo (stesso dominio)
+#     "admin@dominio2.com,it@dominio2.com"      # Secondo gruppo (stesso dominio)
+# )
 
 # OPZIONE 3: Array di destinatari (alternativa più pulita)
 # $EmailAmministratore = @("admin1@tuodominio.it", "admin2@tuodominio.it", "manager@tuodominio.it")
@@ -232,30 +238,71 @@ $corpoReport += @"
 
 # === INVIA REPORT ALL'AMMINISTRATORE ===
 Write-Host "Invio report all'amministratore con $($reportOrdinato.Count) utenti..."
-try {
-    # Prepara parametri per l'invio del report
-    $mailParams = @{
-        From = $EmailMittente
-        To = $EmailAmministratore
-        Subject = "Report giornaliero scadenze password"
-        Body = $corpoReport
-        SmtpServer = $SMTPServer
-        Port = $SMTPPort
-        BodyAsHtml = $true
+
+# Gestione destinatari multipli per Office 365
+if ($EmailAmministratore -is [array]) {
+    # OPZIONE 2B: Array di gruppi di destinatari (domini diversi)
+    $emailInviati = 0
+    foreach ($gruppoDestinatar in $EmailAmministratore) {
+        try {
+            # Converte stringa con virgole in array
+            $destinatariArray = $gruppoDestinatar -split ','
+            
+            $mailParams = @{
+                From = $EmailMittente
+                To = $destinatariArray
+                Subject = "Report giornaliero scadenze password"
+                Body = $corpoReport
+                SmtpServer = $SMTPServer
+                Port = $SMTPPort
+                BodyAsHtml = $true
+            }
+            
+            if ($UsaSSL) { $mailParams.UseSsl = $true }
+            if ($Credential) { $mailParams.Credential = $Credential }
+            
+            Send-MailMessage @mailParams
+            $emailInviati++
+            Write-Host "Email inviata al gruppo $emailInviati: $gruppoDestinatar"
+        } catch {
+            Write-Host "Errore nell'invio al gruppo $($gruppoDestinatar): $($_.Exception.Message)" -ForegroundColor Red
+        }
     }
-    
-    # OPZIONE 4: Se hai configurato destinatari separati per categoria, decommentare:
-    # if ($EmailCopia) { $mailParams.Cc = $EmailCopia }
-    # if ($EmailCopiaNascosta) { $mailParams.Bcc = $EmailCopiaNascosta }
-    
-    # Aggiungi SSL se richiesto
-    if ($UsaSSL) { $mailParams.UseSsl = $true }
-    
-    # Aggiungi credenziali se richieste
-    if ($Credential) { $mailParams.Credential = $Credential }
-    
-    Send-MailMessage @mailParams
-    Write-Host "Report inviato con successo!"
-} catch {
-    Write-Host "Errore nell'invio del report: $($_.Exception.Message)" -ForegroundColor Red
+    if ($emailInviati -gt 0) {
+        Write-Host "Report inviato con successo a $emailInviati gruppi di destinatari!"
+    }
+} else {
+    # OPZIONE normale: destinatari singoli o stesso dominio
+    try {
+        # Converte stringa con virgole in array se necessario
+        $destinatariArray = if ($EmailAmministratore -like "*,*") {
+            $EmailAmministratore -split ','
+        } else {
+            $EmailAmministratore
+        }
+        
+        $mailParams = @{
+            From = $EmailMittente
+            To = $destinatariArray
+            Subject = "Report giornaliero scadenze password"
+            Body = $corpoReport
+            SmtpServer = $SMTPServer
+            Port = $SMTPPort
+            BodyAsHtml = $true
+        }
+        
+        # OPZIONE 4: Se hai configurato destinatari separati per categoria, decommentare:
+        # if ($EmailCopia) { $mailParams.Cc = $EmailCopia -split ',' }
+        # if ($EmailCopiaNascosta) { $mailParams.Bcc = $EmailCopiaNascosta -split ',' }
+        
+        if ($UsaSSL) { $mailParams.UseSsl = $true }
+        if ($Credential) { $mailParams.Credential = $Credential }
+        
+        Send-MailMessage @mailParams
+        Write-Host "Report inviato con successo!"
+    } catch {
+        Write-Host "Errore nell'invio del report: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "SUGGERIMENTO: Se usi Office 365 e hai destinatari di domini diversi," -ForegroundColor Yellow
+        Write-Host "usa l'OPZIONE 2B nella configurazione per separare i domini." -ForegroundColor Yellow
+    }
 }

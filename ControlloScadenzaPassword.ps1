@@ -5,7 +5,23 @@ $SMTPServer = "smtp.tuodominio.it"  # Il tuo server SMTP interno
 $SMTPPort = 25                      # Porta SMTP (25, 587, 2525, ecc.)
 $UsaSSL = $false                    # True per SSL, False per connessione normale
 $EmailMittente = "noreply@tuodominio.it"
-$EmailAmministratore = "admin@tuodominio.it"
+
+# CONFIGURAZIONE DESTINATARI - Scegli una delle opzioni qui sotto:
+
+# OPZIONE 1: Un solo destinatario
+# $EmailAmministratore = "admin@tuodominio.it"
+
+# OPZIONE 2: Più destinatari separati da virgola (stringa)
+$EmailAmministratore = "admin1@tuodominio.it,admin2@tuodominio.it,manager@tuodominio.it"
+
+# OPZIONE 3: Array di destinatari (alternativa più pulita)
+# $EmailAmministratore = @("admin1@tuodominio.it", "admin2@tuodominio.it", "manager@tuodominio.it")
+
+# OPZIONE 4: Destinatari separati per categoria
+# $EmailAmministratore = "admin@tuodominio.it"        # Destinatario principale
+# $EmailCopia = "manager@tuodominio.it,it@tuodominio.it"  # Destinatari in copia
+# $EmailCopiaNascosta = "supervisor@tuodominio.it"    # Destinatari in copia nascosta
+
 $GiorniAvviso = 10
 
 # Configurazione credenziali SMTP (lascia vuoto per mail non autenticata)
@@ -227,6 +243,10 @@ try {
         Port = $SMTPPort
         BodyAsHtml = $true
     }
+    
+    # OPZIONE 4: Se hai configurato destinatari separati per categoria, decommentare:
+    # if ($EmailCopia) { $mailParams.Cc = $EmailCopia }
+    # if ($EmailCopiaNascosta) { $mailParams.Bcc = $EmailCopiaNascosta }
     
     # Aggiungi SSL se richiesto
     if ($UsaSSL) { $mailParams.UseSsl = $true }

@@ -1,15 +1,25 @@
 Import-Module ActiveDirectory
 
 # === CONFIGURAZIONE ===
-$SMTPServer = "smtp.gmail.com"
+$SMTPServer = "smtp.tuodominio.it"  # Il tuo server SMTP interno
+$SMTPPort = 25                      # Porta SMTP (25, 587, 2525, ecc.)
+$UsaSSL = $false                    # True per SSL, False per connessione normale
 $EmailMittente = "noreply@tuodominio.it"
 $EmailAmministratore = "admin@tuodominio.it"
 $GiorniAvviso = 10
 
-# Configurazione credenziali SMTP
-$Username = "noreply@tuodominio.it"
-$Password = "LatuaPasswordQui" | ConvertTo-SecureString -AsPlainText -Force
-$Credential = New-Object System.Management.Automation.PSCredential($Username, $Password)
+# Configurazione credenziali SMTP (lascia vuoto per mail non autenticata)
+$UsaAutenticazione = $false         # Cambia a $true se serve autenticazione
+$Username = ""                      # Username per SMTP (vuoto se non serve)
+$Password = ""                      # Password per SMTP (vuoto se non serve)
+
+# Crea credenziali solo se necessario
+if ($UsaAutenticazione -and $Username -ne "" -and $Password -ne "") {
+    $SecurePassword = $Password | ConvertTo-SecureString -AsPlainText -Force
+    $Credential = New-Object System.Management.Automation.PSCredential($Username, $SecurePassword)
+} else {
+    $Credential = $null
+}
 
 # === CALCOLO SCADENZA PASSWORD ===
 $maxPwdAge = (Get-ADDefaultDomainPasswordPolicy).MaxPasswordAge
@@ -87,7 +97,23 @@ Ti consigliamo di cambiarla il prima possibile per evitare interruzioni di acces
 Grazie,
 Il team IT
 "@
-            Send-MailMessage -From $EmailMittente -To $utente.EmailAddress -Subject $oggettoUtente -Body $corpoUtente -SmtpServer $SMTPServer -Port 587 -UseSsl -Credential $Credential
+            # Prepara parametri per l'invio
+            $mailParams = @{
+                From = $EmailMittente
+                To = $utente.EmailAddress
+                Subject = $oggettoUtente
+                Body = $corpoUtente
+                SmtpServer = $SMTPServer
+                Port = $SMTPPort
+            }
+            
+            # Aggiungi SSL se richiesto
+            if ($UsaSSL) { $mailParams.UseSsl = $true }
+            
+            # Aggiungi credenziali se richieste
+            if ($Credential) { $mailParams.Credential = $Credential }
+            
+            Send-MailMessage @mailParams
         }
     }
 }
@@ -191,7 +217,24 @@ $corpoReport += @"
 # === INVIA REPORT ALL'AMMINISTRATORE ===
 Write-Host "Invio report all'amministratore con $($reportOrdinato.Count) utenti..."
 try {
-    Send-MailMessage -From $EmailMittente -To $EmailAmministratore -Subject "Report giornaliero scadenze password" -Body $corpoReport -SmtpServer $SMTPServer -Port 587 -UseSsl -Credential $Credential -BodyAsHtml
+    # Prepara parametri per l'invio del report
+    $mailParams = @{
+        From = $EmailMittente
+        To = $EmailAmministratore
+        Subject = "Report giornaliero scadenze password"
+        Body = $corpoReport
+        SmtpServer = $SMTPServer
+        Port = $SMTPPort
+        BodyAsHtml = $true
+    }
+    
+    # Aggiungi SSL se richiesto
+    if ($UsaSSL) { $mailParams.UseSsl = $true }
+    
+    # Aggiungi credenziali se richieste
+    if ($Credential) { $mailParams.Credential = $Credential }
+    
+    Send-MailMessage @mailParams
     Write-Host "Report inviato con successo!"
 } catch {
     Write-Host "Errore nell'invio del report: $($_.Exception.Message)" -ForegroundColor Red

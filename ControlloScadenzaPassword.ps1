@@ -12,7 +12,7 @@ $EmailMittente = "noreply@tuodominio.it"
 # $EmailAmministratore = "admin@tuodominio.it"
 
 # OPZIONE 2: Più destinatari separati da virgola (STESSO DOMINIO)
-$EmailAmministratore = "admin1@tuodominio.it,admin2@tuodominio.it,manager@tuodominio.it"
+$EmailAmministratore = "admin1@tuodominio.it"
 
 # OPZIONE 2B: Destinatari di DOMINI DIVERSI (per Office 365)
 # $EmailAmministratore = @(
